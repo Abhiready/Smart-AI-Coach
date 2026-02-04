@@ -63,6 +63,10 @@ try:
 except Exception as e:
     print(f"ERROR: Could not load instrument_list.json. Search will not work. {e}")
 
+@app.route("/")
+def home():
+    return "Smart AI Coach Backend is Live ✅"
+
 def _chat_log_path_for(user_id: Optional[int] = None, portfolio_id: Optional[int] = None) -> str:
     if portfolio_id:
         name = f"portfolio_{portfolio_id}.json"
