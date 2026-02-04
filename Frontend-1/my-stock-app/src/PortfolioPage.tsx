@@ -1,9 +1,30 @@
 // src/PortfolioPage.tsx
 import React, { useEffect, useState } from "react";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { apiUrl } from "./api";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemAvatar,
+  Avatar,
+  ListItemText,
+  Divider,
+  IconButton,
+  Stack,
+  Tooltip,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import CloudOffIcon from "@mui/icons-material/CloudOff";
 
 const LOCAL_KEY = "localPortfolios_v1";
-const apiBase = () => "";
+const apiBase = () => ""; // keep as original (relative api endpoints)
 
 type Portfolio = { id: number; name: string; created_at?: string };
 
@@ -32,7 +53,7 @@ const PortfolioPage: React.FC = () => {
     setError("");
     try {
       // try backend first (relative /api path will go through vite proxy if configured)
-      const res = await fetch("/api/portfolios", { credentials: "include" });
+      const res = await fetch(apiUrl("/api/portfolios"), { credentials: "include" });
       if (!res.ok) {
         // 401 -> use local fallback
         if (res.status === 401) {
@@ -68,14 +89,14 @@ const PortfolioPage: React.FC = () => {
     fetchPortfolios();
     // eslint-disable-next-line
   }, []);
-   
+
   const handleAddPortfolio = async () => {
     const name = newPortfolio.trim();
     if (!name) return;
     setError("");
     try {
       // try backend create
-      const res = await fetch("/api/portfolios", {
+      const res = await fetch(apiUrl("/api/portfolios"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -90,7 +111,7 @@ const PortfolioPage: React.FC = () => {
       // if not ok (likely 401), create locally
       if (res.status === 401) {
         const local = loadLocal();
-        const id = local.length ? Math.max(...local.map(p => p.id)) + 1 : 1;
+        const id = local.length ? Math.max(...local.map((p) => p.id)) + 1 : 1;
         const created = { id, name, created_at: new Date().toISOString() };
         const updated = [...local, created];
         saveLocal(updated);
@@ -104,7 +125,7 @@ const PortfolioPage: React.FC = () => {
     } catch (e) {
       // network error -> local create
       const local = loadLocal();
-      const id = local.length ? Math.max(...local.map(p => p.id)) + 1 : 1;
+      const id = local.length ? Math.max(...local.map((p) => p.id)) + 1 : 1;
       const created = { id, name, created_at: new Date().toISOString() };
       const updated = [...local, created];
       saveLocal(updated);
@@ -114,36 +135,146 @@ const PortfolioPage: React.FC = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: 12 }}>Loading portfolios...</div>;
   return (
-    <div style={{ padding: "1rem" }}>
-      <h2>Portfolio</h2>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+        <FolderOpenIcon color="primary" />
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Portfolio
+        </Typography>
+        <Box sx={{ flex: 1 }} />
+        <Box>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            color="primary"
+            onClick={handleAddPortfolio}
+            disabled={!newPortfolio.trim()}
+            sx={{ mr: 1 }}
+          >
+            Add
+          </Button>
+        </Box>
+      </Stack>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          value={newPortfolio}
-          onChange={(e) => setNewPortfolio(e.target.value)}
-          placeholder="Enter portfolio name"
-        />
-        <button onClick={handleAddPortfolio} style={{ marginLeft: 8 }}>Add</button>
-      </div>
+      <Card sx={{ background: "#0b0d11", color: "white", mb: 3 }}>
+        <CardContent sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            placeholder="Enter portfolio name"
+            value={newPortfolio}
+            onChange={(e) => setNewPortfolio(e.target.value)}
+            size="small"
+            sx={{
+              input: { color: "white" },
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.06)" },
+              "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.6)" },
+            }}
+            InputLabelProps={{ shrink: false }}
+          />
+          <Button
+            variant="outlined"
+            onClick={handleAddPortfolio}
+            startIcon={<AddIcon />}
+            disabled={!newPortfolio.trim()}
+            sx={{ borderColor: "rgba(255,255,255,0.06)", color: "white" }}
+          >
+            Create
+          </Button>
 
-      {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
+          <Box sx={{ flex: 1 }} />
 
-      {portfolios.length === 0 ? (
-        <p>No portfolios yet.</p>
-      ) : (
-        <ul>
-          {portfolios.map((p) => (
-            <li key={p.id}>
-              <Link to={`/portfolio/${p.id}`}>{p.name}</Link>{" "}
-              (Created: {new Date(p.created_at || new Date().toISOString()).toLocaleDateString()})
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+          {loading ? (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
+              Loading…
+            </Typography>
+          ) : error ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Tooltip title="Offline / local mode">
+                <CloudOffIcon sx={{ color: "orange" }} />
+              </Tooltip>
+              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                {error}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
+              {portfolios.length} portfolio{portfolios.length !== 1 ? "s" : ""}
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ background: "#0b0d11", color: "white", mb: 4 }}>
+        <CardContent>
+          {portfolios.length === 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                alignItems: "center",
+                justifyContent: "center",
+                py: 6,
+                textAlign: "center",
+                color: "rgba(255,255,255,0.7)",
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                No portfolios yet
+              </Typography>
+              <Typography variant="body2">Create a portfolio to start trading and tracking holdings.</Typography>
+              <Button variant="contained" onClick={() => (document.querySelector("input") as HTMLInputElement)?.focus()}>
+                Create your first portfolio
+              </Button>
+            </Box>
+          ) : (
+            <List>
+              {portfolios.map((p) => (
+                <React.Fragment key={p.id}>
+                  <ListItem
+                    secondaryAction={
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
+                          {new Date(p.created_at || new Date().toISOString()).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{
+                      px: { xs: 1, md: 2 },
+                      py: 1.5,
+                      "&:hover": { background: "rgba(255,255,255,0.02)" },
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: "#1f2937", color: "white" }}>{(p.name || "P").charAt(0).toUpperCase()}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Link
+                          to={`/portfolio/${p.id}`}
+                          style={{ textDecoration: "none", color: "inherit", fontWeight: 700 }}
+                        >
+                          {p.name}
+                        </Link>
+                      }
+                      secondary={<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)" }}>View & manage</Typography>}
+                    />
+                  </ListItem>
+                  <Divider sx={{ borderColor: "rgba(255,255,255,0.03)" }} />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </CardContent>
+      </Card>
+
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.45)" }}>
+          Tip: If you're not logged in the app falls back to local-only mode — portfolios created locally are stored in
+          your browser's Local Storage.
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 

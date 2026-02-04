@@ -1,6 +1,7 @@
 // Frontend/my-stock-app/src/AuthPage.tsx
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography, Paper, Tabs, Tab } from '@mui/material';
+import {apiUrl} from "./api";
 
 interface AuthPageProps {
   onLoginSuccess: (token?: string) => void;
@@ -14,7 +15,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [success, setSuccess] = useState('');
 
   // IMPORTANT: use relative paths so vite proxy handles them -> cookies work
-  const urlFor = (m: 'login' | 'signup') => (m === 'login' ? '/api/login' : '/api/register');
+  const urlFor = (m: 'login' | 'signup') => (m === "login" ? apiUrl("/api/login") : apiUrl("/api/register"));
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

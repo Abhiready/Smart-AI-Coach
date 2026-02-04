@@ -16,10 +16,6 @@ type AuthContextType = AuthState & {
 };
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
-const res = await fetch(apiUrl('/api/me'), {
-  method: 'GET',
-  credentials: 'include',
-});
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -39,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('authToken');
     // if you use cookie-session, call backend logout to expire cookie:
-    fetch('http://127.0.0.1:5000/api/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    fetch(apiUrl('/api/logout'), { method: 'POST', credentials: 'include' }).catch(() => {});
     setIsAuthenticated(false);
     setUser(null);
     navigate('/auth');
@@ -50,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     // Try cookie-based verification first
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/me', {
+      const res = await fetch(apiUrl('/api/me'), {
         method: 'GET',
         credentials: 'include', // important for HttpOnly cookie
       });
@@ -69,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = localStorage.getItem('authToken');
     if (token) {
       try {
-        const res2 = await fetch('http://127.0.0.1:5000/api/verify-token', {
+        const res2 = await fetch(apiUrl('/api/verify-token'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({}),

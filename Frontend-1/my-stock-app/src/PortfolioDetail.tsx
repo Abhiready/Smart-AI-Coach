@@ -1,11 +1,7 @@
 // Frontend/my-stock-app/src/PortfolioDetail.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-
-const apiBase = () => {
-  const host = window.location.hostname;
-  return `http://${host}:5000`;
-};
+import { apiUrl } from "./api";
 
 // small badge helper
 const badgeStyle = (cls: string) => {
@@ -78,12 +74,12 @@ const PortfolioDetail: React.FC = () => {
     const t = (raw || "").trim().toUpperCase();
     if (!t) return null;
     try {
-      const r1 = await fetch(`${apiBase()}/api/stock/${encodeURIComponent(t)}`, {
+      const r1 = await fetch(apiUrl(`/api/stock/${encodeURIComponent(t)}`), {
         credentials: "include",
         signal,
       });
       if (r1.ok) return t;
-      const s = await fetch(`${apiBase()}/api/search/${encodeURIComponent(raw.trim())}`, {
+      const s = await fetch(apiUrl(`/api/search/${encodeURIComponent(raw.trim())}`), {
         credentials: "include",
         signal,
       });
@@ -104,7 +100,7 @@ const PortfolioDetail: React.FC = () => {
   const loadHoldings = async () => {
     try {
       // Try server holdings first
-      const res = await fetch(`${apiBase()}/api/portfolio/${portfolioId}/holdings`, {
+      const res = await fetch(apiUrl(`/api/portfolio/${portfolioId}/holdings`), {
         credentials: "include",
       });
 
@@ -136,7 +132,7 @@ const PortfolioDetail: React.FC = () => {
               // ignore
             }
 
-            const stock = await fetch(`${apiBase()}/api/stock/${encodeURIComponent(tickerToUse)}`, {
+            const stock = await fetch(apiUrl(`/api/stock/${encodeURIComponent(tickerToUse)}`), {
               credentials: "include",
             })
               .then((r) => r.json())
@@ -193,7 +189,7 @@ const PortfolioDetail: React.FC = () => {
     try {
       await loadHoldings();
 
-      const pRes = await fetch(`${apiBase()}/api/portfolio/${portfolioId}`, { credentials: "include" });
+      const pRes = await fetch(apiUrl(`/api/portfolio/${portfolioId}`), { credentials: "include" });
       if (pRes.ok) {
         const pd = await pRes.json();
         setTransactions(pd.transactions || []);
@@ -273,7 +269,7 @@ const PortfolioDetail: React.FC = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${apiBase()}/api/portfolio/${portfolioId}`, {
+      const res = await fetch(apiUrl(`/api/portfolio/${portfolioId}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -327,7 +323,7 @@ const PortfolioDetail: React.FC = () => {
 
       // Try server trade first
       try {
-        const res = await fetch(`${apiBase()}/api/portfolio/${portfolioId}/trade`, {
+        const res = await fetch(apiUrl(`/api/portfolio/${portfolioId}/trade`), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -460,7 +456,7 @@ const PortfolioDetail: React.FC = () => {
       try {
         const resolved = await resolveTicker(raw, signal);
         if (!resolved) return;
-        const r = await fetch(`${apiBase()}/api/stock/${encodeURIComponent(resolved)}`, {
+        const r = await fetch(apiUrl(`/api/stock/${encodeURIComponent(resolved)}`), {
           credentials: "include",
           signal,
         });
@@ -554,7 +550,7 @@ const PortfolioDetail: React.FC = () => {
         portfolio_summary: getPortfolioSummary(),
         portfolio_id: portfolioId,
       };
-      const res = await fetch(`${apiBase()}/api/coach/chat`, {
+      const res = await fetch(apiUrl(`/api/coach/chat`), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
