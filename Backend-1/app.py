@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 # CORS: allow your frontend origin(s) and support credentials (cookies)
-CORS(app, origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+CORS(app, origins=["https://YOUR-VERCEL-APP.vercel.app", "http://localhost:5173"],
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
