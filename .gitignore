@@ -1,0 +1,18 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+pyvenv.cfg
+
+# Node
+node_modules/
+dist/
+build/
+
+# Logs + DB
+chat_logs/
+*.db
+
+# Secrets
+.env
