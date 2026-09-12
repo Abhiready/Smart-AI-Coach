@@ -191,8 +191,8 @@ Generate Personalized Feedback
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/Abhiready/<repository-name>.git
-cd <repository-name>
+git clone https://github.com/Abhiready/Smart-AI-Coach.git
+cd Smart-AI-Coach
 ```
 
 ### Backend Setup
