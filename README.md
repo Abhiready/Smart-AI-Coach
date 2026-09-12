@@ -130,9 +130,17 @@ Generate Personalized Feedback
 
 ## 📸 Screenshots
 
+### 🔐 Login Page
+
+![Login](./Screenshots/login.png)
+
+*Secure login interface for accessing Smart AI Coach.*
+
+---
+
 ### 🏠 Dashboard
 
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](./Screenshots/dashboard.png)
 
 *Real-time dashboard displaying live stock prices and market trends.*
 
@@ -140,7 +148,7 @@ Generate Personalized Feedback
 
 ### 💼 Portfolio Management
 
-![Portfolio](./screenshots/portfolio.png)
+![Portfolio](./Screenshots/portfolio.png)
 
 *Manage multiple portfolios and monitor investment performance.*
 
@@ -148,7 +156,7 @@ Generate Personalized Feedback
 
 ### 💰 Trading Interface
 
-![Trading](./screenshots/trade.png)
+![Trading](./Screenshots/trade.png)
 
 *Execute buy and sell transactions with validation.*
 
@@ -156,7 +164,7 @@ Generate Personalized Feedback
 
 ### 🤖 AI Assistant
 
-![AI Assistant](./screenshots/ai-chat.png)
+![AI Assistant](./Screenshots/ai-chat.png)
 
 *Ask questions about stocks and receive AI-powered financial insights.*
 
@@ -164,7 +172,7 @@ Generate Personalized Feedback
 
 ### 🧠 AI Coach
 
-![AI Coach](./screenshots/ai-coach.png)
+![AI Coach](./Screenshots/ai-coach.png)
 
 *Behavioral analysis identifying FOMO, Panic Selling, or Normal trading patterns.*
 
@@ -172,7 +180,7 @@ Generate Personalized Feedback
 
 ### 📚 Learning Module
 
-![Learning](./screenshots/learning.png)
+![Learning](./Screenshots/learning.png)
 
 *Interactive quizzes and educational content for investors.*
 
@@ -190,7 +198,7 @@ cd <repository-name>
 ### Backend Setup
 
 ```bash
-cd backend
+cd Backend-1
 
 pip install -r requirements.txt
 
@@ -200,11 +208,13 @@ python app.py
 ### Frontend Setup
 
 ```bash
-cd frontend
+cd Frontend-1
+
+cd my-stock-app
 
 npm install
 
-npm start
+npm run dev
 ```
 
 ---
