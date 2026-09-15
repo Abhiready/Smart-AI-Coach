@@ -200,6 +200,8 @@ cd Smart-AI-Coach
 ```bash
 cd Backend-1
 
+.\.venv\Scripts\Activate.ps1
+
 pip install -r requirements.txt
 
 python app.py

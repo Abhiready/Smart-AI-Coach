@@ -12,7 +12,13 @@ build/
 
 # Logs + DB
 chat_logs/
+flask_session/
+learn_progress/
 *.db
 
 # Secrets
 .env
+.env.local
+ca.pem
+
+desktop.ini

@@ -14,6 +14,8 @@ from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
+from dotenv import load_dotenv
+load_dotenv()
 import yfinance as yf
 
 # --- App & Database Configuration ---
@@ -29,11 +31,18 @@ CORS(app, origins=["https://smart-ai-coach.vercel.app", "http://localhost:5173"]
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # MySQL configuration
-app.config['MYSQL_HOST'] = '127.0.0.1'
-app.config['MYSQL_USER'] = 'Abhishek'
-app.config['MYSQL_PASSWORD'] = 'Avengers/2005'
-app.config['MYSQL_DB'] = 'smartcoach_db'
+app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', '127.0.0.1')
+app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3306))
+app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'Abhishek')
+app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
+app.config['MYSQL_DB'] = os.getenv('MYSQL_DB', 'smartcoach_db')
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+
+# SSL: required for Aiven (and most hosted MySQL providers). Only applied if
+# MYSQL_SSL_CA is set in the environment — local dev without it stays unaffected.
+_mysql_ssl_ca = os.getenv('MYSQL_SSL_CA')
+if _mysql_ssl_ca:
+    app.config['MYSQL_CUSTOM_OPTIONS'] = {"ssl": {"ca": _mysql_ssl_ca}}
 
 # Optional session cookie settings
 app.config.update(
@@ -183,6 +192,38 @@ def call_ollama(prompt: str, model: str = "llama3") -> str:
     except Exception as e:
         return f"Ollama error: {e}"
 
+def call_groq(prompt: str, model: str = "openai/gpt-oss-120b", timeout: int = 30) -> str:
+    """
+    Calls Groq's hosted Llama 3 API (OpenAI-compatible chat completions endpoint).
+    Requires GROQ_API_KEY env var.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not set")
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are a concise AI trading coach. No legal/regulatory advice."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.2,
+        "max_tokens": 400
+    }
+    r = requests.post(url, headers=headers, json=payload, timeout=timeout)
+    if r.status_code != 200:
+        raise RuntimeError(f"Groq error {r.status_code}: {r.text[:800]}")
+    j = r.json()
+    try:
+        return j["choices"][0]["message"]["content"]
+    except Exception:
+        return json.dumps(j)
+    
 # --- User & Auth Endpoints ---
 @app.route("/api/me", methods=["GET"])
 def get_current_user():
@@ -327,11 +368,6 @@ def search_stocks(query):
     return jsonify(results)
 
 
-# --- TODO: Portfolio & Transactions API (already in your full code) ---
-# Keep the rest of your existing routes for portfolios, holdings, trade, logout etc.
-# I left them out here only to shorten this reply — DO NOT delete them in your file.
-# Just keep your original portfolio/transactions section under this point.
-
 # --- Portfolio & Transactions API Endpoints ---
 
 @app.route("/api/portfolios", methods=["GET"])
@@ -464,12 +500,6 @@ def trade_stock(portfolio_id):
         if trade_type == "SELL" and (price - recent_avg) / recent_avg < -PERCENT_THRESHOLD:
             coach_class = "PANIC"
 
-        # (OPTIONAL) Use user emotional_score to bias classification:
-        # cur.execute("SELECT emotional_score FROM users WHERE id = %s", (session['user']['id'],))
-        # u = cur.fetchone()
-        # if u and u.get('emotional_score', 50) > 70 and coach_class == 'FOMO':
-        #     coach_class = 'FOMO'  # emphasize label for anxious users, etc.
-
         # --- Insert transaction with coach_class and return the inserted row ---
         cur.execute(
             "INSERT INTO transactions (portfolio_id, ticker, type, quantity, price, coach_class) VALUES (%s,%s,%s,%s,%s,%s)",
@@ -486,19 +516,6 @@ def trade_stock(portfolio_id):
         return jsonify({"error": "An error occurred processing the trade."}), 500
     finally:
         cur.close()
-
-@app.route("/debug/session", methods=["GET", "POST"])
-def debug_session():
-    # show what the server sees (headers + session contents)
-    from flask import make_response
-    info = {
-        "headers": dict(request.headers),
-        "cookies_sent_by_browser": request.cookies,   # cookies Flask received in request
-        "session_on_server": session.get("user")
-    }
-    resp = make_response(jsonify(info), 200)
-    # include the same CORS headers – Flask-CORS should set these already
-    return resp
 
 @app.route("/api/logout", methods=["POST"])
 def logout():
@@ -842,7 +859,7 @@ def ai_coach_chat():
       - Prefer portfolio_summary from request body (frontend).
       - If not provided and user logged in, fetch DB summary.
       - Compute numeric summary (totals) and append short summary to LLM prompt.
-      - Try Ollama (if available) else fallback to simple_coach_reply.
+      - Try Ollama, then Groq, then fallback to simple_coach_reply.
       - Append both user and assistant messages to server-side chat logs.
       - Return reply + portfolio_summary + computed_summary for front-end debugging.
     """
@@ -894,20 +911,29 @@ def ai_coach_chat():
      # Prepare a user log entry (we'll append to server logs later)
      user_entry = {"role": "user", "text": user_msg, "ts": datetime.datetime.utcnow().isoformat() + "Z"}
 
-     # Try Ollama (local) first if configured
+     # Try Ollama (local) first, then Groq (hosted), then fall through to simple_coach_reply
      reply_text = None
      source = None
      model = None
+
+     # 1) Try local Ollama first (works when running on your own machine with Ollama installed)
      try:
         model = os.getenv("OLLAMA_MODEL", "llama3")
-        reply = call_ollama(prompt, model=model, timeout=40)
-        reply_text = reply
+        reply_text = call_ollama(prompt, model=model, timeout=40)
         source = "ollama"
      except Exception as e:
         logger.warning("Ollama attempt failed: %s", str(e))
-        # fall through to fallback
 
-     # If we don't have a reply from Ollama, use the simple / fallback coach
+     # 2) If Ollama isn't available (e.g. deployed on Render with no Ollama binary), try Groq
+     if reply_text is None:
+        try:
+            model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+            reply_text = call_groq(prompt, model=model, timeout=40)
+            source = "groq"
+        except Exception as e:
+            logger.warning("Groq attempt failed: %s", str(e))
+
+     # If we don't have a reply from Ollama or Groq, use the simple / fallback coach
      if reply_text is None:
         try:
             result = simple_coach_reply(user_msg, portfolio_summary=portfolio_summary)
@@ -1003,14 +1029,6 @@ def coach_logs_endpoint():
         return jsonify({"error": "failed saving logs"}), 500
     return jsonify({"saved": True, "count": len(logs)}), 200
 
-@app.route("/debug/ollama", methods=["GET"])
-def debug_ollama():
-    return jsonify({
-        "shutil_which": shutil.which("ollama"),
-        "OLLAMA_BIN_env": os.getenv("OLLAMA_BIN"),
-        "PATH_head": os.environ.get("PATH", "")[:1200]
-    })
-  
 def _normalize_ticker_list(text: str):
     return list({m.group(1).upper() for m in re.finditer(r'\b([A-Z]{2,6})\b', text)})
 
@@ -1231,18 +1249,6 @@ def ai_coach_simple():
     }
     return jsonify(out), 200
 
-@app.route("/debug/ollama-info", methods=["GET"])
-def debug_ollama_info():
-    found = shutil.which("ollama")
-    return jsonify({
-        "shutil_which": found,
-        "env_path_head": os.environ.get("PATH", "")[:1000],
-        "possible_locations": {
-            "program_files": os.path.exists(r"C:\Program Files\Ollama\ollama.exe"),
-            "user_appdata": os.path.exists(os.path.expanduser(r"~\AppData\Local\Programs\Ollama\ollama.exe"))
-        }
-    })
-
 # --- Learning progress endpoints (add to app.py) ---
 LEARN_DIR = os.path.join(os.path.dirname(__file__), "learn_progress")
 os.makedirs(LEARN_DIR, exist_ok=True)
@@ -1302,4 +1308,4 @@ def learn_progress():
     return jsonify({"saved": True, "progress": progress}), 200
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=False)

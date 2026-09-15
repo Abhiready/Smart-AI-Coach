@@ -1,5 +1,6 @@
 // StocksPage.tsx
 import { useState, useEffect, useCallback } from "react";
+import { apiUrl } from "./api";
 import {
   Box,
   Typography,
@@ -62,14 +63,10 @@ function readLocalPortfolioSummary(pid: number) {
 function writeLocalPortfolioSummary(pid: number, summary: any) {
   try {
     localStorage.setItem(`portfolioSummary:${pid}`, JSON.stringify(summary));
-  } catch {}
+  } catch (e) {
+    console.error("Failed to write local portfolio summary:", e);
+  }
 }
-
-// helper that builds host-aware api base (use same host that served the page)
-const apiBase = () => {
-  const host = window.location.hostname;
-  return `http://${host}:5000`;
-};
 
 // --- Main Page Component ---
 export default function StocksPage() {
@@ -83,14 +80,14 @@ export default function StocksPage() {
   useEffect(() => {
     const fetchAllStockData = async () => {
       try {
-        const listResponse = await fetch(`${apiBase()}/api/stocks`);
+        const listResponse = await fetch(apiUrl("/api/stocks"));
         if (!listResponse.ok) throw new Error("Failed to fetch stock list");
         const stockList: { ticker: string; name: string }[] = await listResponse.json();
 
         const detailedStockData = await Promise.all(
           stockList.map(async (stock) => {
             try {
-              const detailResponse = await fetch(`${apiBase()}/api/stock/${stock.ticker}`);
+              const detailResponse = await fetch(apiUrl(`/api/stock/${stock.ticker}`));
               if (!detailResponse.ok) return { ...stock };
               const details = await detailResponse.json();
               if (details.error) return { ...stock };
@@ -118,7 +115,7 @@ export default function StocksPage() {
     }
     const search = async () => {
       try {
-        const response = await fetch(`${apiBase()}/api/search/${encodeURIComponent(searchQuery)}`);
+        const response = await fetch(apiUrl(`/api/search/${encodeURIComponent(searchQuery)}`));
         const data = await response.json();
         setSearchResults(data || []);
       } catch {
@@ -236,7 +233,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
   useEffect(() => {
     if (stock.price === undefined) {
       setFullStockData(null); // loading
-      fetch(`${apiBase()}/api/stock/${stock.ticker}`)
+      fetch(apiUrl(`/api/stock/${stock.ticker}`))
         .then((res) => res.json())
         .then((data) => setFullStockData({ ...stock, ...data }))
         .catch(() => setFullStockData({ ...stock }));
@@ -248,7 +245,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
   // ensure logged in? helper
   const ensureLoggedIn = useCallback(async (): Promise<{ id: number; username: string } | null> => {
     try {
-      const r = await fetch(`${apiBase()}/api/me`, { credentials: "include" });
+      const r = await fetch(apiUrl("/api/me"), { credentials: "include" });
       if (!r.ok) return null;
       const j = await r.json();
       return j && j.id ? j : null;
@@ -260,7 +257,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
   // load user's portfolios (for selection in trade dialog)
   const loadPortfolios = useCallback(async () => {
     try {
-      const res = await fetch(`${apiBase()}/api/portfolios`, {
+      const res = await fetch(apiUrl("/api/portfolios"), {
         credentials: "include",
       });
       if (res.ok) {
@@ -321,7 +318,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
       }
       let usedLocal = false;
       try {
-        const res = await fetch(`${apiBase()}/api/portfolio/${pid}/holdings`, { credentials: "include" });
+        const res = await fetch(apiUrl(`/api/portfolio/${pid}/holdings`), { credentials: "include" });
         if (!res.ok) {
           // If unauthorized or server error, fallback to local storage
           usedLocal = true;
@@ -437,7 +434,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
 
       if (me) {
         // Try server trade
-        const res = await fetch(`${apiBase()}/api/portfolio/${pid}/trade`, {
+        const res = await fetch(apiUrl(`/api/portfolio/${pid}/trade`), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -481,7 +478,7 @@ const StockDetailPage = ({ stock, onBack }: { stock: Stock; onBack: () => void }
           setSnackOpen(true);
           // refresh price
           try {
-            const latest = await fetch(`${apiBase()}/api/stock/${stock.ticker}`).then((r) => r.json());
+            const latest = await fetch(apiUrl(`/api/stock/${stock.ticker}`)).then((r) => r.json());
             setFullStockData({ ...fullStockData!, ...latest });
           } catch {}
           setTradeDialogOpen(false);
