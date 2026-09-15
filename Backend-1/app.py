@@ -49,7 +49,6 @@ app.config.update(
     SESSION_COOKIE_SAMESITE=None,
     SESSION_COOKIE_SECURE=True
 )
-CORS(app, origins=["http://localhost:5173","http://127.0.0.1:5173"], supports_credentials=True)
 
 bcrypt = Bcrypt(app)
 mysql = MySQL(app)
