@@ -19,6 +19,5 @@ learn_progress/
 # Secrets
 .env
 .env.local
-ca.pem
 
 desktop.ini
