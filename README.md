@@ -2,6 +2,9 @@
 
 An AI-powered stock analysis platform that leverages **real-time market data** and **behavioral intelligence** to help users make informed trading decisions while avoiding emotional biases like FOMO and panic selling.
 
+🔗 **Live App:** [smart-ai-coach.vercel.app](https://smart-ai-coach.vercel.app)
+*(Backend is on Render's free tier — first load after inactivity may take 30-50 seconds to wake up.)*
+
 ---
 
 ## 📌 Overview
@@ -105,26 +108,31 @@ Generate Personalized Feedback
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React
-- HTML
-- CSS
-- JavaScript
+- React (Vite)
+- TypeScript
+- Material UI
 
 ### Backend
 - Flask (Python)
+- Gunicorn (production WSGI server)
 
 ### Libraries
 - Pandas
-- NumPy
+- yfinance
 
 ### APIs
 - Yahoo Finance API (Real-Time Market Data)
 
 ### AI
-- Gemini API *(replace this if you used another model)*
+- Groq API — Llama 3 (openai/gpt-oss-120b), with local Ollama fallback for development
 
 ### Database
-- MongoDB *(replace if different)*
+- MySQL (hosted on Aiven, SSL-secured connection)
+
+### Deployment
+- Frontend: Vercel
+- Backend: Render
+- Database: Aiven
 
 ---
 
@@ -206,6 +214,8 @@ pip install -r requirements.txt
 
 python app.py
 ```
+
+Requires a `.env` file with `GROQ_API_KEY`, `FLASK_SECRET_KEY`, and `MYSQL_*` credentials.
 
 ### Frontend Setup
 
