@@ -46,7 +46,7 @@ if _mysql_ssl_ca:
 
 # Optional session cookie settings
 app.config.update(
-    SESSION_COOKIE_SAMESITE=None,
+    SESSION_COOKIE_SAMESITE="None",
     SESSION_COOKIE_SECURE=True
 )
 
